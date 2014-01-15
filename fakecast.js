@@ -2,7 +2,7 @@ var url = require("url");
 var ws = require("ws");
 var port = 6363;
 
-var server = new WebSocketServer({port: port});
+var server = new ws.Server({port: port});
 var controllers = [];
 var targets = [];
 
@@ -21,9 +21,22 @@ function send(connection, message)
     return true;
 }
 
+function updateTargets()
+{
+    for (var i=0; i<controllers.length; ++i) {
+
+
+    }
+}
 
 server.on("connection", function(connection) {
     var requestUrl = url.parse(connection.upgradeReq.url, true);
+    var response = JSON.stringify(requestUrl, null, 4);
+    // for (var i in connection._receiver) {
+    //     var val = connection._receiver[i];
+    //     if (typeof val !== "function")
+    //         response += i + ": " + connection._receiver[i] + "\n";
+    // }
     if (requestUrl.pathname === '/controller') {
         controllers.push(connection);
     } else if (requestUrl.pathname === '/target') {
@@ -32,6 +45,8 @@ server.on("connection", function(connection) {
         send(connection, "Invalid url");
         return;
     }
+
+    send(connection, "You're connected " + response);
 
     // var pageUrl =
     // var slashIdx = pageUrl.lastIndexOf("/");
