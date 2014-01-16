@@ -56,7 +56,7 @@ window.onkeypress = function(ev)
 
             } else {
                 if (!receiver) {
-                    messageDiv.innerHTML('Invalid id ' + id);
+                    messageDiv.innerHTML = 'Invalid id ' + id;
                     sequence = '';
                     return;
                 }
@@ -186,9 +186,10 @@ function start()
         cast._receiveMessage(data);
     };
 
-    cast._sendMessage = function(params, cb) {
-        params.fastcake = true;
-        connection.send(JSON.stringify(params));
+    cast._sendMessage = function(message) {
+        log("sending message", message);
+        message.fastcake = true;
+        connection.send(JSON.stringify(message));
     };
 
     cast.addReceiverListener('netflix',

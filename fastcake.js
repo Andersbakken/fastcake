@@ -1,5 +1,6 @@
 var url = require("url");
 var ws = require("ws");
+var stringify = require("json-stringify-safe");
 var port = 6363;
 
 var server = new ws.Server({port: port});
@@ -14,14 +15,8 @@ function log()
     var i;
     for (i=0; i<arguments.length; ++i) {
         var txt = arguments[i];
-        if (typeof txt !== 'string') {
-            try {
-                var json = JSON.stringify(txt);
-                txt = json;
-            } catch (err) {
-                txt += txt;
-            }
-        }
+        if (typeof txt !== 'string')
+            txt = stringify(txt);
         if (line.length)
             line += ' ';
         line += txt;
@@ -56,6 +51,7 @@ function updateReceivers()
         for (i=0; i<receivers[activityType].length; ++i) {
             var r = receivers[activityType][i];
             list.push({ipAddress:r.ipAddress, name:r.name,
+                       activityType: activityType,
                        id:r.id, isTabProtected:r.isTabProtected});
         }
         all[activityType] = list;
@@ -98,7 +94,9 @@ function onReceiverClosed(receiver, code)
 
 function onSenderMessage(sender, msg)
 {
-    log("Got message from sender", msg);
+    if (msg.fastcake) {
+    }
+    log("Got message from sender", msg, receivers);
 }
 
 function onSenderClosed(sender, code)

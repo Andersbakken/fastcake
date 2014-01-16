@@ -41,7 +41,10 @@ var Cast = {
                 Cast.error("Invalid launch request");
                 return;
             }
-            var data = { receiverId: launchRequest.receiver.id,  disconnectPolicy: launchRequest.disconnectPolicy };
+            var data = { receiverId: launchRequest.receiver.id,
+                         disconnectPolicy: launchRequest.disconnectPolicy,
+                         type: "launch",
+                         activityType: launchRequest.activityType };
             if (launchRequest.parameters) {
                 if (typeof launchRequest.parameters === 'string') {
                     data.parameters = launchRequest.parameters;
@@ -118,35 +121,35 @@ var Cast = {
         };
 
         // private:
-        this._castInvoke = function _castInvoke(name, params, cb) {
-            if (!params)
-                params = {};
-            params.idx = this._nextIdx++;
-            this._cbs[params.idx] = cb;
+        this._castInvoke = function _castInvoke(name, message, cb) {
+            if (!message)
+                message = {};
+            message.idx = this._nextIdx++;
+            this._cbs[message.idx] = cb;
             if (this._sendMessage)
-                this._sendMessage(params, cb);
-            return params.idx;
+                this._sendMessage(message);
+            return message.idx;
         };
         this._receiveMessage = function _receiveSenderMessage(message) {
             switch (message.type) {
             case 'receiversChanged':
                 // log(message.receivers);
                 var changes = false;
-                for (var activity in message.receivers) {
+                for (var activityType in message.receivers) {
                     var newReceivers = {};
-                    var r = message.receivers[activity];
-                    var changed = !this._receivers[activity] || r.length != this._receivers[activity].length;
+                    var r = message.receivers[activityType];
+                    var changed = !this._receivers[activityType] || r.length != this._receivers[activityType].length;
                     for (var i=0; i<r.length; ++i) {
                         newReceivers[r[i].id] = r[i];
                         if (!changed)
-                            changed |= !this._receivers[activity][r[i].id];
+                            changed |= !this._receivers[activityType][r[i].id];
                     }
                     if (changed) {
                         changes = true;
-                        this._receivers[activity] = newReceivers;
-                        var listeners = this._receiverListeners[activity];
+                        this._receivers[activityType] = newReceivers;
+                        var listeners = this._receiverListeners[activityType];
                         if (listeners) {
-                            // log("Updating for", activity);
+                            // log("Updating for", activityType);
                             for (var l=0; l<listeners.length; ++l) {
                                 listeners[l](newReceivers);
                             }
