@@ -1,5 +1,5 @@
 var logOutput;
-var logs = [];
+// var logs = [];
 function log()
 {
     if (!logOutput)
@@ -21,17 +21,18 @@ function log()
             line += ' ';
         line += txt;
     }
-    logs.unshift(line);
-    while (logs.length > 20)
-        logs.pop();
+    logOutput.innerHTML += line + '\n';
+    // logs.unshift(line);
+    // while (logs.length > 20)
+    //     logs.pop();
 
-    var t = '';
-    for (var i=0; i<logs.length; ++i) {
-        if (i > 0)
-            t += '\n';
-        t += logs[i];
-    }
-    logOutput.innerHTML = t;
+    // var t = '';
+    // for (var i=0; i<logs.length; ++i) {
+    //     if (i > 0)
+    //         t += '\n';
+    //     t += logs[i];
+    // }
+    // logOutput.innerHTML = t;
 }
 
 var connection;
@@ -57,11 +58,11 @@ function start()
     if (role !== 'sender' && role !== 'receiver')
         throw new Error('Invalid role ' + role);
     var fastcakeHost = query['fastcakeHost'] || 'localhost:6363';
-    var activityType = "";
+    var activityType = '';
     if (role === 'receiver')
         activityType = '&activityType=' + encodeURIComponent(query['activityType'] || 'foobar');
 
-    var url = 'ws://' + fastcakeHost + '/cast?role=' + role + activityType;
+    var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType;
     log(url);
 
     cast = new Cast.API();
@@ -73,8 +74,14 @@ function start()
         log(role + ' error', error);
     };
     connection.onmessage = function(msg) {
-        log(msg);
-        cast._receiveMessage(msg);
+        var data = JSON.parse(msg.data);
+        if (!data.fastcake)
+            return;
+        if (data.type == 'log') {
+            log("Log message from remote server: " + data.log);
+            return;
+        }
+        cast._receiveMessage(data);
     };
 }
 

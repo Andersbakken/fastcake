@@ -3,98 +3,154 @@ var ws = require("ws");
 var port = 6363;
 
 var server = new ws.Server({port: port});
-var controllers = [];
-var targets = {};
+var receivers = {};
+var nextReceiverId = 1;
+var senders = [];
+var nextSenderId = 1;
+
+function log()
+{
+    var line = '';
+    var i;
+    for (i=0; i<arguments.length; ++i) {
+        var txt = arguments[i];
+        if (typeof txt !== 'string') {
+            try {
+                var json = JSON.stringify(txt);
+                txt = json;
+            } catch (err) {
+                txt += txt;
+            }
+        }
+        if (line.length)
+            line += ' ';
+        line += txt;
+    }
+    console.log(line);
+}
 
 function send(connection, message)
 {
     if (typeof(message) === "object")
         message = JSON.stringify(message);
-    //console.log("->" + message);
+
     try {
         connection.send(message);
     } catch (e) {
-        console.log("Couldn't send message, dropping:");
+        console.log("Couldn't send message, dropping.");
         console.log(e);
         return false;
     }
     return true;
 }
 
-function updateTargets()
+function updateReceivers()
 {
-    var t = [];
-    for (var id in targets) {
-        t.push(id);
+    var all = {};
+    var i;
+    for (var activity in receivers) {
+        var list = [];
+        for (i=0; i<receivers[activity].length; ++i) {
+            var r = receivers[activity][i];
+            list.push({ipAddress:r.ipAddress, name:r.name,
+                       id:r.id, isTabProtected:r.isTabProtected});
+        }
+        all[activity] = list;
     }
-
-    var message = {type:"targetsChanged", targets:t};
+    var message = {fastcake:true, type:"targetsChanged", receivers:all};
 
     var msg = JSON.stringify(message);
 
-    for (var i=0; i<controllers.length; ++i) {
-        send(controllers[i].connection, msg);
+    for (var i=0; i<senders.length; ++i) {
+        send(senders[i].connection, msg);
     }
 }
 
-function onTargetMessage(msg)
+function onReceiverMessage(receiver, msg)
 {
+    log("Receiver message", msg);
+}
 
+function onReceiverClosed(receiver, code)
+{
+    var r = receivers[receiver.activity];
+    for (var i=0; i<r.length; ++i) {
+        if (receiver.id == r[i].id) {
+            r.splice(i, i);
+            if (!r.length) {
+                delete receivers[receiver.activity];
+            }
+            break;
+        }
+    }
+    updateReceivers();
+}
+
+function onSenderMessage(sender, msg)
+{
+    log("Got message from sender", msg);
+}
+
+function onSenderClosed(sender, code)
+{
+    log("Sender closed", code);
+    for (var i=0; i<senders.length; ++i) {
+        if (senders[i].id == sender.id) {
+            senders.splice(i, i);
+            // need to notify receiver if connected maybe?
+            break;
+        }
+    }
 }
 
 server.on("connection", function(connection) {
     var requestUrl = url.parse(connection.upgradeReq.url, true);
-    var response = JSON.stringify(requestUrl, null, 4);
-    // for (var i in connection._receiver) {
-    //     var val = connection._receiver[i];
-    //     if (typeof val !== "function")
-    //         response += i + ": " + connection._receiver[i] + "\n";
-    // }
-    // if (!requestUrl.query.
-    if (requestUrl.pathname === '/') {
-        controllers.push({connection:connection});
-    } else if (requestUrl.pathname === '/target') {
-        if (!requestUrl.query || !requestUrl.query.id) {
-            send(connection, "Invalid url. No id query paramater");
+    if (requestUrl.pathname !== '/fastcake') {
+        send(connection, "Wrong Path.");
+        return;
+    }
+    var role = requestUrl.query.role;
+    if (role !== 'receiver' && role !== 'sender') {
+        send(connection, "Invalid role.");
+        return;
+    }
+    var receiver = role === 'receiver';
+    log(requestUrl.query);
+    if (receiver) {
+        if (!requestUrl.query.name) {
+            send(connection, "No name.");
+            connection.close();
+            return;
+        }
+        if (!requestUrl.query.activityType) {
+            send(connection, "No activityType.");
+            connection.close();
             return;
         }
 
-        var id = requestUrl.query.id;
+        if (!requestUrl.query.ipAddress) {
+            send(connection, "No ipAddress.");
+            connection.close();
+            return;
+        }
 
-        if (targets[id])
-            targets[id].connection.close();
-
-        targets[id] = {connection:connection, id:id};
-        connection.on("message", function(msg) { onTargetMessage(id, msg); });
-        connection.on("close", function(code) {
-            console.log("target disconnected(" + code + ")!");
-        });
+        var r = { id:nextReceiverId++,
+                  ipAddress:requestUrl.query.ipAddress,
+                  name:!requestUrl.query.name,
+                  activityType:!requestUrl.query.activityType,
+                  isTabProtected: false,
+                  connection:connection };
+        if (!receivers[r.activityType])
+            receivers[r.activityType] = [];
+        receivers[r.activityType].push(r);
+        connection.on("message", function(msg) { onReceiverMessage(r, msg); });
+        connection.on("close", function(code) { onReceiverClosed(r, code); });
     } else {
-        send(connection, "Invalid url");
-        return;
+        var s = {connection:connection, id:nextSenderId++};
+        senders.push(s);
+        connection.on("message", function(msg) { onSenderMessage(s, msg); });
+        connection.on("close", function(code) { onSenderClosed(s, code); });
     }
-    send(connection, "You're connected"); // + response);
-    updateTargets();
-
-    // var pageUrl =
-    // var slashIdx = pageUrl.lastIndexOf("/");
-    // console.log("Inspector connected!");
-    // setTimeout(function() { sendState(ws); }, 1000);
-    // clients.push(ws);
-    // connection.on("message", function(msg) {
-    //     try {
-    //         handleMessage(ws, JSON.parse(msg));
-    //     } catch (err) {
-    //         console.log("Error parsing WebSocket message " + err);
-    //         console.log(msg);
-    //     }
-    // });
-    // connection.on("close", function(code) {
-    //     console.log("Inspector disconnected(" + code + ")!");
-    //     var idx = clients.indexOf(ws);
-    //     if (idx != -1)
-    //         clients.splice(idx, 1);
-    //     else
-    //         console.log("Unable to find socket in list of clients!");
-    // });
+    send(connection, {fastcake:true, type:"log", log:"You're connected"});
+    updateReceivers();
 });
