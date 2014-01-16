@@ -50,15 +50,15 @@ var Cast = {
                 }
             }
             this._castInvoke("launch", data, resultCallback);
-        },
+        };
 
         this.getActivityStatus = function getActivityStatus(activityId, resultCallback) {
             this._castInvoke("getActivityStatus", {activityId:activityId}, resultCallback);
-        },
+        };
 
         this.stopActivity = function stopActivity(activityId, resultCallback) {
             this._castInvoke("stopActivity", {activityId:activityId}, resultCallback);
-        },
+        };
 
         this.sendMessage = function sendMessage(activityId, namespace, message, resultCallback) {
             var data = { activityId:activityId, namespace:namespace };
@@ -68,7 +68,7 @@ var Cast = {
                 data.message = JSON.stringify(message);
             }
             this._castInvoke("sendMessage", data, resultCallback);
-        },
+        };
 
         this.addMessageListener = function addMessageListener(activityId, namespace, listener) {
             if (!this._messageListeners[activityId]) {
@@ -78,7 +78,7 @@ var Cast = {
             } else {
                 this._messageListeners[activityId][namespace].push(listener);
             }
-        },
+        };
 
         this.removeMessageListener = function removeMessageListener(activityId, namespace, listener) {
             var listeners = this._messageListeners[activityId];
@@ -115,7 +115,7 @@ var Cast = {
                     delete this._messageListeners[activityId];
                 }
             }
-        },
+        };
 
         // private:
         this._castInvoke = function _castInvoke(name, params, cb) {
@@ -124,7 +124,11 @@ var Cast = {
             params.idx = this._nextIdx++;
             this._cbs[params.idx] = cb;
             return params.idx;
-        },
+        };
+        this._receiveMessage = function _receiveMessage(message) {
+
+
+        };
 
         this._receiverListeners = {};
         this._receivers = {};
