@@ -27,7 +27,7 @@ var Cast = {
                         if (activityListeners.length == 1) {
                             delete this._receiverListeners[activityType];
                         } else {
-                            activityListeners.splice(i, i);
+                            activityListeners.splice(i, 1);
                         }
                         return;
                     }
@@ -92,7 +92,7 @@ var Cast = {
             if (nl) {
                 for (var i=0; i<nl.length; ++i) {
                     if (nl[i] === listener) {
-                        nl.splice(i, i);
+                        nl.splice(i, 1);
                         found = true;
                         if (nl.length == 0) {
                             delete listeners[namespace];
@@ -128,25 +128,33 @@ var Cast = {
         this._receiveSenderMessage = function _receiveSenderMessage(message) {
             switch (message.type) {
             case 'receiversChanged':
-                log(message.receivers);
+                // log(message.receivers);
+                var changes = false;
                 for (var activity in message.receivers) {
                     var newReceivers = {};
-                    var r = message.receivers[r];
+                    var r = message.receivers[activity];
                     var changed = !this._receivers[activity] || r.length != this._receivers[activity].length;
                     for (var i=0; i<r.length; ++i) {
                         newReceivers[r[i].id] = r[i];
-                        changed |= !this._receivers[activity][r[i].id];
+                        if (!changed)
+                            changed |= !this._receivers[activity][r[i].id];
                     }
                     if (changed) {
+                        changes = true;
                         this._receivers[activity] = newReceivers;
                         var listeners = this._receiverListeners[activity];
                         if (listeners) {
+                            // log("Updating for", activity);
                             for (var l=0; l<listeners.length; ++l) {
                                 listeners[l](newReceivers);
                             }
+                        // } else {
+                        //     log("No listeners");
                         }
                     }
                 }
+                if (changes)
+                    log("Receivers updated");
                 break;
             }
         };

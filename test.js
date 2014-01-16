@@ -1,5 +1,27 @@
 var logOutput;
+var ui;
 // var logs = [];
+var receivers = {};
+var activities = [];
+
+function updateUI()
+{
+    if (!ui)
+        ui = document.getElementById('ui');
+    var text = "<b>Receivers:</b>\n";
+    var id;
+    for (id in receivers) {
+        text += "    <i>id: " + id + " name: " + receivers[id].name + " ipAddress: " + receivers[id].ipAddress + "</i>\n";
+    }
+    text += "\n<b>Activities:</b>\n";
+    for (var i=0; i<activities.length; ++i) {
+        text += "activityId: " + activities[i].activityId + " status: " + activities[i].status + " receiverId: " + receivers[i].receiverId + "\n";
+    }
+    ui.innerHTML = text;
+}
+
+
+
 function log()
 {
     if (!logOutput)
@@ -21,7 +43,9 @@ function log()
             line += ' ';
         line += txt;
     }
-    logOutput.innerHTML += line + '\n';
+    if (logOutput.innerHTML && logOutput.innerHTML.length > 0)
+        logOutput.innerHTML += '\n';
+    logOutput.innerHTML += line;
     // logs.unshift(line);
     // while (logs.length > 20)
     //     logs.pop();
@@ -68,18 +92,18 @@ function start()
     }
 
     var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType + name + ipAddress;
-    log(url);
+    // log(url);
 
     cast = new Cast.API();
     connection = new WebSocket(url);
     connection.onopen = function() {
-        log(role + ' connected');
+        log(role + ' connected ' + url);
     };
     connection.onerror = function(error) {
-        log(role + ' error', error);
+        log(role + ' error ' + url, error);
     };
     connection.onclose = function(event) {
-        log(role + ' closed', event.code, event.reason);
+        log(role + ' closed ' + url, event.code, event.reason);
     };
     connection.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
@@ -92,5 +116,11 @@ function start()
         }
         cast._receiveSenderMessage(data);
     };
+
+    cast.addReceiverListener("netflix",
+                             function(r) {
+                                 receivers = r;
+                                 updateUI();
+                             });
 }
 

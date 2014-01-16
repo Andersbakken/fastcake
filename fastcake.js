@@ -51,14 +51,14 @@ function updateReceivers()
         return;
     var all = {};
     var i;
-    for (var activity in receivers) {
+    for (var activityType in receivers) {
         var list = [];
-        for (i=0; i<receivers[activity].length; ++i) {
-            var r = receivers[activity][i];
+        for (i=0; i<receivers[activityType].length; ++i) {
+            var r = receivers[activityType][i];
             list.push({ipAddress:r.ipAddress, name:r.name,
                        id:r.id, isTabProtected:r.isTabProtected});
         }
-        all[activity] = list;
+        all[activityType] = list;
     }
     var message = {fastcake:true, type:"receiversChanged", receivers:all};
 
@@ -76,18 +76,22 @@ function onReceiverMessage(receiver, msg)
 
 function onReceiverClosed(receiver, code)
 {
-    log("Receiver closed", code);
-    var r = receivers[receiver.activity];
+    log("Receiver closed", receiver.activityType, code);
+    var r = receivers[receiver.activityType];
     if (r) {
         for (var i=0; i<r.length; ++i) {
-            if (receiver.id == r[i].id) {
-                r.splice(i, i);
-                if (!r.length) {
-                    delete receivers[receiver.activity];
+            log("Looking for", i, "of", r.length, receiver.id, r[i].id);
+            if (receiver.id === r[i].id) {
+                if (r.length == 1) {
+                    delete receivers[receiver.activityType];
+                } else {
+                    r.splice(i, 1);
                 }
                 break;
             }
         }
+    } else {
+        log("No such receiver", receiver.activityType);
     }
     updateReceivers();
 }
@@ -102,7 +106,7 @@ function onSenderClosed(sender, code)
     log("Sender closed", code);
     for (var i=0; i<senders.length; ++i) {
         if (senders[i].id == sender.id) {
-            senders.splice(i, i);
+            senders.splice(i, 1);
             // need to notify receiver if connected maybe?
             break;
         }
@@ -121,7 +125,7 @@ server.on("connection", function(connection) {
         return;
     }
     var receiver = role === 'receiver';
-    log(requestUrl.query);
+    // log(requestUrl.query);
     if (receiver) {
         if (!requestUrl.query.name) {
             connection.close(1008, 'Missing name');
@@ -148,6 +152,7 @@ server.on("connection", function(connection) {
         receivers[r.activityType].push(r);
         connection.on("message", function(msg) { onReceiverMessage(r, msg); });
         connection.on("close", function(code) { onReceiverClosed(r, code); });
+        log("Added a receiver for", r.activityType, "id", r.id, receivers[r.activityType].length);
     } else {
         var s = {connection:connection, id:nextSenderId++};
         senders.push(s);
