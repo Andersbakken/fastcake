@@ -162,6 +162,11 @@ var Cast = {
         this._receiverListeners = {};
         this._receivers = {};
     },
+    LaunchRequest: function LaunchRequest(activityType, receiver) {
+        this.activityType = activityType;
+        this.receiver = receiver;
+        this.disconnectPolicy = "continue";
+    },
 
     // private:
     errorFunction: undefined,

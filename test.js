@@ -1,8 +1,10 @@
 var logOutput;
 var ui;
+var messageDiv;
 // var logs = [];
 var receivers = {};
 var activities = [];
+var sequence = "";
 
 function updateUI()
 {
@@ -20,7 +22,61 @@ function updateUI()
     ui.innerHTML = text;
 }
 
+window.onkeypress = function(ev)
+{
+    if (!messageDiv)
+        messageDiv = document.getElementById("message");
+    switch (ev.charCode) {
+    case 108:
+        sequence = "l";
+        break;
+    case 115:
+        sequence = "s";
+        break;
+    case 13:
+        if (sequence.length >= 2) {
+            var id = parseInt(sequence.substr(1));
+            var receiver = receivers[id];
+            if (sequence[0] == 's') {
+                cast.stopActivity(id, function(activityStatus) {
+                    log("got stopActivity callback", activityStatus);
+                });
 
+            } else {
+                if (!receiver) {
+                    messageDiv.innerHTML("Invalid id " + id);
+                    sequence = "";
+                    return;
+                }
+                cast.launch(new Cast.LaunchRequest(receiver.activityType, receiver),
+                            function(activityStatus) {
+                                log("got launch callback", activityStatus);
+                            });
+                messageDiv.innerHTML = "Launched app for receiver " + id;
+            }
+            sequence = "";
+        }
+        return;
+    default:
+        if (sequence.length > 0 && ev.charCode >= 48 && ev.charCode <= 57) {
+            sequence += String.fromCharCode(ev.charCode);
+        } else {
+            sequence = "";
+        }
+    }
+
+    if (sequence.length === 0) {
+        messageDiv.innerHTML = "Press l or s followed by numbers and <enter>";
+    } else {
+        if (sequence[0] == 'l') {
+            messageDiv.innerHTML = "Launch ";
+        } else {
+            messageDiv.innerHTML = "Stop ";
+        }
+        messageDiv.innerHTML += sequence.substr(1);
+    }
+    // log(ev);
+};
 
 function log()
 {
