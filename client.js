@@ -37,11 +37,23 @@ function log()
 var target, controller;
 function start()
 {
-    log("Started");
+    var query = {};
+    var q = window.location.search.substring(1);
+    var vars = q.split('&');
+    for (var i = 0; i < vars.length; i++) {
+        if (vars[i].length) {
+            var pair = vars[i].split('=');
+            query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+        }
+    }
+    // log(query);
+    // log("Started");
 
     var url = document.URL;
 
-    target = new WebSocket("ws://localhost:6363/target");
+    var id = query["id"] || "test";
+
+    target = new WebSocket("ws://localhost:6363/target?id=" + encodeURIComponent(id));
     target.onopen = function() { log("target connected"); };
     target.onerror = function(error) { log("target error", error); };
     target.onmessage = onTargetMessage;

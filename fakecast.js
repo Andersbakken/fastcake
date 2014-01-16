@@ -4,7 +4,7 @@ var port = 6363;
 
 var server = new ws.Server({port: port});
 var controllers = [];
-var targets = [];
+var targets = {};
 
 function send(connection, message)
 {
@@ -23,9 +23,17 @@ function send(connection, message)
 
 function updateTargets()
 {
+    var t = [];
+    for (var id in targets) {
+        t.push(id);
+    }
+
+    var message = {type:"targetsChanged", targets:t};
+
+    var msg = JSON.stringify(message);
+
     for (var i=0; i<controllers.length; ++i) {
-
-
+        send(controllers[i].connection, msg);
     }
 }
 
@@ -38,15 +46,28 @@ server.on("connection", function(connection) {
     //         response += i + ": " + connection._receiver[i] + "\n";
     // }
     if (requestUrl.pathname === '/controller') {
-        controllers.push(connection);
+        controllers.push({connection:connection});
     } else if (requestUrl.pathname === '/target') {
-        targets.push(connection);
+        if (!requestUrl.query || !requestUrl.query.id) {
+            send(connection, "Invalid url. No id query paramater");
+            return;
+        }
+
+        var id = requestUrl.query.id;
+
+        if (targets[id])
+            targets[id].connection.close();
+
+        targets[id] = {connection:connection, id:id};
+        connection.on("message", function(msg) { onTargetMessage(id, msg); });
+        connection.on("close", function(code) {
+            console.log("target disconnected(" + code + ")!");b
     } else {
         send(connection, "Invalid url");
         return;
     }
-
-    send(connection, "You're connected " + response);
+    send(connection, "You're connected"); // + response);
+    updateTargets();
 
     // var pageUrl =
     // var slashIdx = pageUrl.lastIndexOf("/");
