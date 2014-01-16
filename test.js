@@ -4,21 +4,32 @@ var messageDiv;
 // var logs = [];
 var receivers = {};
 var activities = [];
-var sequence = "";
+var sequence = '';
 var pendingMessages = {};
+var connection;
+var role;
+var cast;
 
 function updateUI()
 {
     if (!ui)
         ui = document.getElementById('ui');
-    var text = "<b>Receivers:</b>\n";
+    var text = '<b>State:</b>\n';
+
+    if (role)
+        text += '  role: ' + role + ',';
+    text += ' connectionState: ';
+    if (connection)
+        text += connection.readyState;
+
+    text += '\n<b>Receivers:</b>\n';
     var id;
     for (id in receivers) {
-        text += "    <i>id: " + id + " name: " + receivers[id].name + " ipAddress: " + receivers[id].ipAddress + "</i>\n";
+        text += '  <i>id: ' + id + ' name: ' + receivers[id].name + ' ipAddress: ' + receivers[id].ipAddress + '</i>\n';
     }
-    text += "\n<b>Activities:</b>\n";
+    text += '<b>Activities:</b>\n';
     for (var i=0; i<activities.length; ++i) {
-        text += "activityId: " + activities[i].activityId + " status: " + activities[i].status + " receiverId: " + receivers[i].receiverId + "\n";
+        text += '  activityId: ' + activities[i].activityId + ' status: ' + activities[i].status + ' receiverId: ' + receivers[i].receiverId + '\n';
     }
     ui.innerHTML = text;
 }
@@ -26,13 +37,13 @@ function updateUI()
 window.onkeypress = function(ev)
 {
     if (!messageDiv)
-        messageDiv = document.getElementById("message");
+        messageDiv = document.getElementById('message');
     switch (ev.charCode) {
     case 108:
-        sequence = "l";
+        sequence = 'l';
         break;
     case 115:
-        sequence = "s";
+        sequence = 's';
         break;
     case 13:
         if (sequence.length >= 2) {
@@ -40,51 +51,52 @@ window.onkeypress = function(ev)
             var receiver = receivers[id];
             if (sequence[0] == 's') {
                 cast.stopActivity(id, function(activityStatus) {
-                    log("got stopActivity callback", activityStatus);
+                    log('got stopActivity callback', activityStatus);
                 });
 
             } else {
                 if (!receiver) {
-                    messageDiv.innerHTML("Invalid id " + id);
-                    sequence = "";
+                    messageDiv.innerHTML('Invalid id ' + id);
+                    sequence = '';
                     return;
                 }
                 cast.launch(new Cast.LaunchRequest(receiver.activityType, receiver),
                             function(activityStatus) {
-                                log("got launch callback", activityStatus);
+                                log('got launch callback', activityStatus);
                             });
-                messageDiv.innerHTML = "Launched app for receiver " + id;
+                messageDiv.innerHTML = 'Launched app for receiver ' + id;
             }
-            sequence = "";
+            sequence = '';
         }
         return;
     default:
         if (sequence.length > 0 && ev.charCode >= 48 && ev.charCode <= 57) {
             sequence += String.fromCharCode(ev.charCode);
         } else {
-            sequence = "";
+            sequence = '';
         }
     }
 
     if (sequence.length === 0) {
-        messageDiv.innerHTML = "Press l or s followed by numbers and <enter>";
+        messageDiv.innerHTML = 'Press l or s followed by numbers and <enter>';
     } else {
         if (sequence[0] == 'l') {
-            messageDiv.innerHTML = "Launch ";
+            messageDiv.innerHTML = 'Launch ';
         } else {
-            messageDiv.innerHTML = "Stop ";
+            messageDiv.innerHTML = 'Stop ';
         }
         messageDiv.innerHTML += sequence.substr(1);
     }
     // log(ev);
 };
 
+var logIdx = 0;
 function log()
 {
     if (!logOutput)
         logOutput = document.getElementById('logOutput');
 
-    var line = '';
+    var line = '<b>' + logIdx++ + ':</b>';
     var i;
     for (i=0; i<arguments.length; ++i) {
         var txt = arguments[i];
@@ -115,10 +127,6 @@ function log()
     // }
     // logOutput.innerHTML = t;
 }
-
-var connection;
-var role;
-var cast;
 
 function start()
 {
@@ -155,21 +163,23 @@ function start()
     connection = new WebSocket(url);
     connection.onopen = function() {
         log(role + ' connected ' + url);
+        updateUI();
     };
     connection.onerror = function(error) {
         log(role + ' error ' + url, error);
+        updateUI();
     };
     connection.onclose = function(event) {
         log(role + ' closed ' + url, event.code, event.reason);
     };
     connection.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
-        // log("got message", data);
+        // log('got message', data);
         if (!data.fastcake)
             return;
         switch (data.type) {
         case 'log':
-            log("Log message from remote server: " + data.log);
+            log('Log message from remote server: ' + data.log);
             return;
         case 'response':
         }
@@ -181,7 +191,7 @@ function start()
         connection.send(JSON.stringify(params));
     };
 
-    cast.addReceiverListener("netflix",
+    cast.addReceiverListener('netflix',
                              function(r) {
                                  receivers = r;
                                  updateUI();

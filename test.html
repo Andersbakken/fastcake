@@ -1,28 +1,19 @@
 <html>
   <head>
+    <style>
+      pre {white-space: pre-wrap;}
+    </style>
     <script src="fastcake-sender.js"></script>
     <script src="fastcake-receiver.js"></script>
     <script src="test.js"></script>
   </head>
   <body onload="start();">
-    <table width="100%">
-      <tr>
-        <td>
-          <div id="message"><div>
-        </td>
-      </tr>
-      <tr>
-        <td width="50%" style="background-color:#FFD700;">
-          <div id>
-            <pre id="logOutput"></pre>
-          </div>
-        </td>
-        <td width="50%" style="background-color:#00FFD7;">
-          <div id>
-            <pre id="ui"></pre>
-          </div>
-        </td>
-      </tr>
-    </table>
+    <div id="message"></div>
+    <div id style="background-color:#00FFD7;">
+      <pre id="ui"></pre>
+    </div>
+    <div style="background-color:#FFD700;">>
+      <pre id="logOutput"></pre>
+    </div>
   </body>
 </html>
