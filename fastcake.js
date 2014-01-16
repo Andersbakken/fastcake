@@ -73,6 +73,7 @@ function onReceiverMessage(receiver, msg)
 
 function onReceiverClosed(receiver, code)
 {
+    log("Receiver closed", code);
     var r = receivers[receiver.activity];
     for (var i=0; i<r.length; ++i) {
         if (receiver.id == r[i].id) {
@@ -118,19 +119,16 @@ server.on("connection", function(connection) {
     log(requestUrl.query);
     if (receiver) {
         if (!requestUrl.query.name) {
-            send(connection, "No name.");
-            connection.close();
+            connection.close(1000, 'Missing name');
             return;
         }
         if (!requestUrl.query.activityType) {
-            send(connection, "No activityType.");
-            connection.close();
+            connection.close(1000, 'No activityType');
             return;
         }
 
         if (!requestUrl.query.ipAddress) {
-            send(connection, "No ipAddress.");
-            connection.close();
+            connection.close('No ipAddress');
             return;
         }
 

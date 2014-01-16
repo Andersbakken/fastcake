@@ -17,7 +17,7 @@ function log()
                 txt += txt;
             }
         }
-        if (line.length)
+        if (line.length && line[line.length - 1] !== ' ')
             line += ' ';
         line += txt;
     }
@@ -59,10 +59,13 @@ function start()
         throw new Error('Invalid role ' + role);
     var fastcakeHost = query['fastcakeHost'] || 'localhost:6363';
     var activityType = '';
-    if (role === 'receiver')
-        activityType = '&activityType=' + encodeURIComponent(query['activityType'] || 'foobar');
+    var name = '';
+    if (role === 'receiver') {
+        activityType = '&activityType=' + encodeURIComponent(query['activityType'] || 'netflix');
+        name = '&name=' + encodeURIComponent(query['name'] || 'testName');
+    }
 
-    var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType;
+    var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType + name;
     log(url);
 
     cast = new Cast.API();
@@ -72,6 +75,9 @@ function start()
     };
     connection.onerror = function(error) {
         log(role + ' error', error);
+    };
+    connection.onclose = function(event) {
+        log(role + ' closed', event.code, event.reason);
     };
     connection.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
