@@ -39,6 +39,8 @@ function start()
 {
     log("Started");
 
+    var url = document.URL;
+
     target = new WebSocket("ws://localhost:6363/target");
     target.onopen = function() { log("target connected"); };
     target.onerror = function(error) { log("target error", error); };
