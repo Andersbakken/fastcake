@@ -123,9 +123,11 @@ var Cast = {
                 params = {};
             params.idx = this._nextIdx++;
             this._cbs[params.idx] = cb;
+            if (this._sendMessage)
+                this._sendMessage(params, cb);
             return params.idx;
         };
-        this._receiveSenderMessage = function _receiveSenderMessage(message) {
+        this._receiveMessage = function _receiveSenderMessage(message) {
             switch (message.type) {
             case 'receiversChanged':
                 // log(message.receivers);
@@ -156,11 +158,21 @@ var Cast = {
                 if (changes)
                     log("Receivers updated");
                 break;
+            case 'response':
+                if (message.idx) {
+                    var cb = this._cbs[message.idx];
+                    delete this._cbs[message.idx];
+                    if (cb)
+                        cb(message.response);
+                }
+                break;
             }
         };
 
         this._receiverListeners = {};
         this._receivers = {};
+        this._cbs = {};
+        this._nextIdx = 1;
     },
     LaunchRequest: function LaunchRequest(activityType, receiver) {
         this.activityType = activityType;

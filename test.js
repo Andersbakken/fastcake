@@ -5,6 +5,7 @@ var messageDiv;
 var receivers = {};
 var activities = [];
 var sequence = "";
+var pendingMessages = {};
 
 function updateUI()
 {
@@ -166,11 +167,18 @@ function start()
         // log("got message", data);
         if (!data.fastcake)
             return;
-        if (data.type == 'log') {
+        switch (data.type) {
+        case 'log':
             log("Log message from remote server: " + data.log);
             return;
+        case 'response':
         }
-        cast._receiveSenderMessage(data);
+        cast._receiveMessage(data);
+    };
+
+    cast._sendMessage = function(params, cb) {
+        params.fastcake = true;
+        connection.send(JSON.stringify(params));
     };
 
     cast.addReceiverListener("netflix",
