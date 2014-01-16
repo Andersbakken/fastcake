@@ -125,9 +125,30 @@ var Cast = {
             this._cbs[params.idx] = cb;
             return params.idx;
         };
-        this._receiveMessage = function _receiveMessage(message) {
-
-
+        this._receiveSenderMessage = function _receiveSenderMessage(message) {
+            switch (message.type) {
+            case 'receiversChanged':
+                log(message.receivers);
+                for (var activity in message.receivers) {
+                    var newReceivers = {};
+                    var r = message.receivers[r];
+                    var changed = !this._receivers[activity] || r.length != this._receivers[activity].length;
+                    for (var i=0; i<r.length; ++i) {
+                        newReceivers[r[i].id] = r[i];
+                        changed |= !this._receivers[activity][r[i].id];
+                    }
+                    if (changed) {
+                        this._receivers[activity] = newReceivers;
+                        var listeners = this._receiverListeners[activity];
+                        if (listeners) {
+                            for (var l=0; l<listeners.length; ++l) {
+                                listeners[l](newReceivers);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
         };
 
         this._receiverListeners = {};

@@ -46,6 +46,9 @@ function send(connection, message)
 
 function updateReceivers()
 {
+    log("updateReceivers", senders.length);
+    if (!senders.length)
+        return;
     var all = {};
     var i;
     for (var activity in receivers) {
@@ -57,7 +60,7 @@ function updateReceivers()
         }
         all[activity] = list;
     }
-    var message = {fastcake:true, type:"targetsChanged", receivers:all};
+    var message = {fastcake:true, type:"receiversChanged", receivers:all};
 
     var msg = JSON.stringify(message);
 
@@ -75,13 +78,15 @@ function onReceiverClosed(receiver, code)
 {
     log("Receiver closed", code);
     var r = receivers[receiver.activity];
-    for (var i=0; i<r.length; ++i) {
-        if (receiver.id == r[i].id) {
-            r.splice(i, i);
-            if (!r.length) {
-                delete receivers[receiver.activity];
+    if (r) {
+        for (var i=0; i<r.length; ++i) {
+            if (receiver.id == r[i].id) {
+                r.splice(i, i);
+                if (!r.length) {
+                    delete receivers[receiver.activity];
+                }
+                break;
             }
-            break;
         }
     }
     updateReceivers();
@@ -119,23 +124,23 @@ server.on("connection", function(connection) {
     log(requestUrl.query);
     if (receiver) {
         if (!requestUrl.query.name) {
-            connection.close(1000, 'Missing name');
+            connection.close(1008, 'Missing name');
             return;
         }
         if (!requestUrl.query.activityType) {
-            connection.close(1000, 'No activityType');
+            connection.close(1008, 'No activityType');
             return;
         }
 
         if (!requestUrl.query.ipAddress) {
-            connection.close('No ipAddress');
+            connection.close(1008, 'No ipAddress');
             return;
         }
 
         var r = { id:nextReceiverId++,
                   ipAddress:requestUrl.query.ipAddress,
-                  name:!requestUrl.query.name,
-                  activityType:!requestUrl.query.activityType,
+                  name:requestUrl.query.name,
+                  activityType:requestUrl.query.activityType,
                   isTabProtected: false,
                   connection:connection };
         if (!receivers[r.activityType])

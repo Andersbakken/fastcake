@@ -60,12 +60,14 @@ function start()
     var fastcakeHost = query['fastcakeHost'] || 'localhost:6363';
     var activityType = '';
     var name = '';
+    var ipAddress = '';
     if (role === 'receiver') {
         activityType = '&activityType=' + encodeURIComponent(query['activityType'] || 'netflix');
         name = '&name=' + encodeURIComponent(query['name'] || 'testName');
+        ipAddress = '&ipAddress=' + encodeURIComponent(query['ipAddress'] || '127.0.0.1');
     }
 
-    var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType + name;
+    var url = 'ws://' + fastcakeHost + '/fastcake?role=' + role + activityType + name + ipAddress;
     log(url);
 
     cast = new Cast.API();
@@ -81,13 +83,14 @@ function start()
     };
     connection.onmessage = function(msg) {
         var data = JSON.parse(msg.data);
+        // log("got message", data);
         if (!data.fastcake)
             return;
         if (data.type == 'log') {
             log("Log message from remote server: " + data.log);
             return;
         }
-        cast._receiveMessage(data);
+        cast._receiveSenderMessage(data);
     };
 }
 
